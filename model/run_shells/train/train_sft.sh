@@ -44,7 +44,7 @@ export PYTHONPATH=$PYTHONPATH:../../oasst-shared
 #----------------
 export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
 torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/trainer_sft.py \
---configs debug galactica-125m webgpt_dataset_only \
+--configs defaults llama-7b webgpt_dataset_only \
 --cache_dir ${dataset_dir} \
 --output_dir ${train_output_dir} \
 --deepspeed \
@@ -54,5 +54,6 @@ torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/tr
 --num_train_epochs 3 \
 --logging_steps 2 \
 --save_total_limit 3 \
+--use_flash_attention false \
 --log_dir ${log_dir} \
 --show_dataset_stats

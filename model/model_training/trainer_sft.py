@@ -2,11 +2,16 @@
 import argparse
 import logging
 import os
+import sys
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import datasets
 import torch
+
+prj_model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(prj_model_dir)
+
 from model_training.custom_datasets.dialogue_collator import DialogueDataCollator
 from model_training.efficiency_utils import fuse_gelu
 from model_training.utils import (
@@ -46,14 +51,14 @@ def preprocess_logits_for_metrics(logits, labels):
 
 class SFTTrainer(Trainer):
     def __init__(
-        self,
-        model: Union[PreTrainedModel, nn.Module] = None,
-        args: TrainingArguments = None,
-        sampler: torch.utils.data.sampler.Sampler = None,
-        loss_function: str = "CrossEntropyLoss",
-        poly_eps: float = 1.0,
-        train_collate_fn: Callable = None,
-        **kwargs,
+            self,
+            model: Union[PreTrainedModel, nn.Module] = None,
+            args: TrainingArguments = None,
+            sampler: torch.utils.data.sampler.Sampler = None,
+            loss_function: str = "CrossEntropyLoss",
+            poly_eps: float = 1.0,
+            train_collate_fn: Callable = None,
+            **kwargs,
     ):
         super().__init__(model, args, **kwargs)
         self.train_collate_fn = train_collate_fn
@@ -94,11 +99,11 @@ class SFTTrainer(Trainer):
         return loss, logits, targets, labels_mask
 
     def prediction_step(
-        self,
-        model: nn.Module,
-        inputs: Dict[str, Union[torch.Tensor, Any]],
-        prediction_loss_only: bool,
-        ignore_keys: Optional[List[str]] = None,
+            self,
+            model: nn.Module,
+            inputs: Dict[str, Union[torch.Tensor, Any]],
+            prediction_loss_only: bool,
+            ignore_keys: Optional[List[str]] = None,
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         with torch.no_grad():
             loss, logits, labels, labels_mask = self._compute_loss(model, inputs)
@@ -194,7 +199,7 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls("./configs")
+    configs = read_yamls(f"{prj_model_dir}/model_training/configs")
     conf.update(configs["defaults"])
     try:
         for name in args.configs:
@@ -349,7 +354,7 @@ def main():
     train, evals = get_dataset(training_conf)
 
     show_dataset_stats = (training_conf.verbose or training_conf.show_dataset_stats) and (
-        not training_conf.deepspeed or training_conf.local_rank == 0
+            not training_conf.deepspeed or training_conf.local_rank == 0
     )
     if show_dataset_stats:
         print("Dataset stats before sampling:")
@@ -392,7 +397,8 @@ def main():
     model = get_model(training_conf, tokenizer)
 
     if training_conf.quantization:
-        import bitsandbytes  # This is noisy, so delay importing until after argument parsing so it doesn't make --help noisy
+        import \
+            bitsandbytes  # This is noisy, so delay importing until after argument parsing so it doesn't make --help noisy
 
         for module in model.modules():
             if isinstance(module, torch.nn.Embedding):

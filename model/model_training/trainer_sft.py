@@ -201,6 +201,10 @@ def argument_parsing(notebook=False, notebook_args=None):
     conf = {}
     configs = read_yamls(f"{prj_model_dir}/model_training/configs")
     conf.update(configs["defaults"])
+    print("-" * 100)
+    print(conf)
+    print("-" * 100)
+
     try:
         for name in args.configs:
             if "," in name:

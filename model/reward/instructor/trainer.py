@@ -21,6 +21,7 @@ parser = ArgumentParser()
 parser.add_argument("config", type=str)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--deepspeed", action="store_true")
+parser.add_argument("--deepspeed_config", type=str)
 parser.add_argument("--no-deepspeed", dest="deepspeed", action="store_false")
 parser.add_argument("--wandb-entity", type=str)
 parser.add_argument("--per-digit-tokens", action="store_true")
@@ -145,7 +146,8 @@ if __name__ == "__main__":
         # lr_scheduler_type=training_conf["scheduler"],
         learning_rate=training_conf["learning_rate"],
         # half_precision_backend="apex",
-        deepspeed="configs/zero_config.json" if training_conf["deepspeed"] else None,
+        # deepspeed="configs/zero_config.json" if training_conf["deepspeed"] else None,
+        deepspeed=f"{training_conf['deepspeed_config']}" if training_conf["deepspeed"] else None,
         fp16=training_conf["fp16"],
         local_rank=training_conf["local_rank"],
         gradient_checkpointing=training_conf["gradient_checkpointing"],

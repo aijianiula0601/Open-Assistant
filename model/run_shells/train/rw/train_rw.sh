@@ -22,33 +22,31 @@ dataset_dir="${save_base_dir}/dataset"
 train_output_dir="${save_base_dir}/rw_outputs"
 log_dir="${train_output_dir}/run_logs"
 deepspeed_config="$(pwd)/model/run_shells/deepspeed_config.json"
-#config_file="$(pwd)/model/reward/instructor/configs/electra-base-dis-webgpt.yml"
-config_file="$(pwd)/model/reward/instructor/configs/bloomz-560m.yml"
+config_file="$(pwd)/model/model_training/configs/config_rm.yaml"
 random_port=12343
-wandb_entity="rw_instruct"
 
 rm -rf ${train_output_dir}
 
 #----------------
 # 单卡
 #----------------
-#python model/reward/instructor/trainer.py ${config_file} \
-#--wandb-entity ${wandb_entity} \
-#--deepspeed \
-#--output_dir ${train_output_dir} \
-#--deepspeed_config ${deepspeed_config}
-
-#python model/reward/instructor/trainer.py -h
+python model/model_training/trainer_rm.py \
+--configs defaults_rm oasst-rm-1-pythia-1.4b \
+--cache_dir ${dataset_dir} \
+--output_dir ${train_output_dir} \
+--deepspeed \
+--deepspeed_config ${deepspeed_config}
 
 #----------------
 # 多卡
 #----------------
-export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
-torchrun --nproc_per_node=8 --master_port=${random_port} model/reward/instructor/trainer.py ${config_file} \
---wandb-entity ${wandb_entity} \
---output_dir ${train_output_dir} \
---deepspeed \
---deepspeed_config ${deepspeed_config}
+#export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
+#torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/trainer_rm.py \
+#--configs defaults llama-7b webgpt_dataset_only \
+#--cache_dir ${dataset_dir} \
+#--output_dir ${train_output_dir} \
+#--deepspeed \
+#--deepspeed_config "$(pwd)/model/run_shells/deepspeed_config.json" \
 #--per_device_train_batch_size 16 \
 #--per_device_eval_batch_size 8 \
 #--num_train_epochs 3 \

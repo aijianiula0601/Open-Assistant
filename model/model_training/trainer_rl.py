@@ -1,9 +1,14 @@
 import argparse
 import random
-
+import os
+import sys
 import torch
 import transformers
 import trlx
+
+prj_model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(prj_model_dir)
+
 from model_training.custom_datasets.formatting import QA_SPECIAL_TOKENS
 from model_training.models import get_specific_model
 from model_training.utils import _strtobool, get_dataset, init_rng, read_yamls
@@ -15,6 +20,7 @@ def argument_parsing(notebook=False, notebook_args=None):
     parser.add_argument("--configs", nargs="+", required=True)
     parser.add_argument("--local_rank", type=int, default=-1)
     parser.add_argument("--rng_seed", type=int, help="rng seed")
+    parser.add_argument("--output_dir", type=str)
 
     if notebook:
         args, remaining = parser.parse_known_args(notebook_args)
@@ -25,7 +31,7 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls("./configs")
+    configs = read_yamls(f"{prj_model_dir}/model_training/configs")
     for name in args.configs:
         if "," in name:
             for n in name.split(","):

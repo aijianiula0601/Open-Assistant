@@ -43,7 +43,7 @@ const config = {
           sidebarPath: require.resolve("./sidebars.js"),
         },
         api: {
-          path: "docs/api/openapi.json",
+          path: "docs/api/",
         },
         blog: {
           routeBasePath: "/blog",
@@ -81,6 +81,11 @@ const config = {
           {
             href: "https://open-assistant.io/",
             label: "App",
+            position: "left",
+          },
+          {
+            href: "https://open-assistant.io/chat",
+            label: "Chat",
             position: "left",
           },
           {

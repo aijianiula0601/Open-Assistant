@@ -23,7 +23,7 @@ import { useForm } from "react-hook-form";
 import { UserStats } from "src/components/Account/UserStats";
 import { AdminArea } from "src/components/AdminArea";
 import { JsonCard } from "src/components/JsonCard";
-import { getAdminLayout } from "src/components/Layout";
+import { AdminLayout } from "src/components/Layout";
 import { AdminMessageTable } from "src/components/Messages/AdminMessageTable";
 import { Role, RoleSelect } from "src/components/RoleSelect";
 import { post } from "src/lib/api";
@@ -31,8 +31,9 @@ import { get } from "src/lib/api";
 import { getValidDisplayName } from "src/lib/display_name_validation";
 import { userlessApiClient } from "src/lib/oasst_client_factory";
 import prisma from "src/lib/prismadb";
-import { getFrontendUserIdForDiscordUser } from "src/lib/users";
+import { getFrontendUserIdForUser } from "src/lib/users";
 import { LeaderboardEntity, LeaderboardTimeFrame } from "src/types/Leaderboard";
+import { AuthMethod } from "src/types/Providers";
 import { User } from "src/types/Users";
 import uswSWRImmutable from "swr/immutable";
 import useSWRMutation from "swr/mutation";
@@ -40,7 +41,7 @@ import useSWRMutation from "swr/mutation";
 interface UserForm {
   user_id: string;
   id: string;
-  auth_method: string;
+  auth_method: AuthMethod;
   display_name: string;
   role: Role;
   notes: string;
@@ -51,7 +52,8 @@ const ManageUser = ({ user }: InferGetServerSidePropsType<typeof getServerSidePr
   const toast = useToast();
 
   const { data: stats } = uswSWRImmutable<Partial<{ [time in LeaderboardTimeFrame]: LeaderboardEntity }>>(
-    "/api/user_stats?uid=" + user.id,
+    "/api/user_stats?" +
+      new URLSearchParams({ id: user.id, auth_method: user.auth_method, display_name: user.display_name }),
     get,
     {
       fallbackData: {},
@@ -101,7 +103,7 @@ const ManageUser = ({ user }: InferGetServerSidePropsType<typeof getServerSidePr
                 <input type="hidden" {...register("auth_method")}></input>
                 <FormControl>
                   <FormLabel>Display Name</FormLabel>
-                  <Input {...register("display_name")} isDisabled />
+                  <Input {...register("display_name")} />
                 </FormControl>
                 <FormControl mt="2">
                   <FormLabel>Role</FormLabel>
@@ -165,13 +167,13 @@ export const getServerSideProps: GetServerSideProps<{ user: User<Role> }, { id: 
   }
 
   let frontendUserId = backend_user.id;
-  if (backend_user.auth_method === "discord") {
-    frontendUserId = await getFrontendUserIdForDiscordUser(backend_user.id);
+  if (backend_user.auth_method === "discord" || backend_user.auth_method === "google") {
+    frontendUserId = await getFrontendUserIdForUser(backend_user.id, backend_user.auth_method);
   }
 
   const local_user = await prisma.user.findUnique({
     where: { id: frontendUserId },
-    select: { role: true },
+    select: { role: true, accounts: true, email: true },
   });
 
   if (!local_user) {
@@ -182,9 +184,12 @@ export const getServerSideProps: GetServerSideProps<{ user: User<Role> }, { id: 
 
   const user = {
     ...backend_user,
-    role: (local_user?.role || "general") as Role,
+    role: (local_user.role || "general") as Role,
+    accounts: local_user.accounts || [],
+    email: local_user.email,
   };
   user.display_name = getValidDisplayName(user.display_name, user.id);
+
   return {
     props: {
       user,
@@ -193,6 +198,6 @@ export const getServerSideProps: GetServerSideProps<{ user: User<Role> }, { id: 
   };
 };
 
-ManageUser.getLayout = getAdminLayout;
+ManageUser.getLayout = AdminLayout;
 
 export default ManageUser;

@@ -10,13 +10,11 @@ cd "$curdir" || exit
 # 切换环境
 # conda activate open-assistant
 # 环境安装：按照model/model_training的README.md来安装
-# 问题记录：
-# 1.No module named "oasst_data"
-#     cd oasst-data
-#     pip install .
 #--------------------------------------------------------------------
 
 cd ../../../../
+
+echo "pwd:$(pwd)"
 
 save_base_dir="/mnt/cephfs/hjh/train_record/nlp/open-assistant"
 dataset_dir="${save_base_dir}/dataset"
@@ -25,7 +23,7 @@ log_dir="${train_output_dir}/run_logs"
 deepspeed_config="$(pwd)/model/run_shells/deepspeed_config.json"
 random_port=12343
 
-rm -rf ${train_output_dir}
+#rm -rf ${train_output_dir}
 mkdir -p ${train_output_dir}
 
 # export shared modules

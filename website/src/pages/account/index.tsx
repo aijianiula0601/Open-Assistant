@@ -14,7 +14,7 @@ import { LeaderboardEntity, LeaderboardTimeFrame } from "src/types/Leaderboard";
 import uswSWRImmutable from "swr/immutable";
 
 export default function Account() {
-  const { t } = useTranslation("leaderboard");
+  const { t } = useTranslation(["leaderboard", "account"]);
   const { data: session } = useSession();
   const { data: stats } = uswSWRImmutable<Partial<{ [time in LeaderboardTimeFrame]: LeaderboardEntity }>>(
     "/api/user_stats",
@@ -43,7 +43,7 @@ export default function Account() {
             <Divider />
             <Grid gridTemplateColumns="repeat(2, max-content)" alignItems="center" gap={6} py={4}>
               <Text as="b">{t("username")}</Text>
-              <Flex gap={2}>
+              <Flex gap={2} style={{ overflow: "hidden" }}>
                 {session.user.name ?? t("no_username")}
                 <Link href="/account/edit">
                   <Icon boxSize={5} as={Pencil} size="1em" />
@@ -55,7 +55,10 @@ export default function Account() {
             <Divider my={4} />
             <XPBar />
           </SurveyCard>
-          <UserStats stats={stats}></UserStats>
+          <UserStats stats={stats} />
+          <SurveyCard className="w-full" color="red">
+            <Link href="/account/delete">{t("account:delete_account")}</Link>
+          </SurveyCard>
         </Flex>
       </main>
     </>

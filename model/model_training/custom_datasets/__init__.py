@@ -7,16 +7,20 @@ import numpy as np
 from model_training.custom_datasets.extra_rm_datasets import load_anthropic_rlhf, load_hellaswag, load_shp
 from model_training.custom_datasets.instruction import INSTRUCTION_DATASETS, InstructionDataset
 from model_training.custom_datasets.oasst_dataset import load_oasst_export
+from model_training.custom_datasets.pretrain_datasets import RedPajama
 from model_training.custom_datasets.prompt_dialogue import Gpt4All, load_oig_file
 from model_training.custom_datasets.qa_datasets import (
     SODA,
-    Alpaca,
-    CodeAlpaca,
+    AlpacaGpt4,
+    DatabricksDolly15k,
+    GPTeacher_Roleplay,
     JokeExplaination,
     QADataset,
     SODADialogue,
     TranslatedQA,
+    Vicuna,
     WebGPT,
+    load_alpaca_dataset,
 )
 from model_training.custom_datasets.rank_datasets import AugmentedOA
 from model_training.custom_datasets.summarization import HFSummary, HFSummaryPairs, SummarizationDataset
@@ -46,11 +50,13 @@ OTHER = [
 ]
 
 RL_DATASETS = [
+    "oasst_export",
     "webgpt",
     "private_tuning",
     "alpaca",
     "hf_summary",
     "hf_summary_pairs",
+    "vicuna",
 ]
 
 RM_DATASETS = [
@@ -116,10 +122,8 @@ def get_one_dataset(
         dataset = DiveMT()
     elif dataset_name == "webgpt":
         dataset = WebGPT(mode=mode)
-    elif dataset_name == "alpaca":
-        dataset = Alpaca(mode=mode, cache_dir=data_path)
-    elif dataset_name == "code_alpaca":
-        dataset = CodeAlpaca(mode=mode, cache_dir=data_path)
+    elif dataset_name in ("alpaca", "code_alpaca"):
+        train, eval = load_alpaca_dataset(dataset_name, val_split=val_split, cache_dir=data_path, **kwargs)
     elif dataset_name == "gpt4all":
         dataset = Gpt4All(mode=mode, cache_dir=data_path)
     elif dataset_name == "prosocial_dialogue":
@@ -129,7 +133,7 @@ def get_one_dataset(
         train = ProsocialDialogueExplaination(cache_dir=data_path, split="train")
         eval = ProsocialDialogueExplaination(cache_dir=data_path, split="validation")
     elif dataset_name == "soda":
-        dataset = SODA(data_path)
+        dataset = SODA(data_path, **kwargs)
     elif dataset_name == "soda_dialogue":
         dataset = SODADialogue(data_path)
     elif dataset_name == "joke":
@@ -137,6 +141,8 @@ def get_one_dataset(
     elif dataset_name == "oa_translated":
         # TODO make val_split lower..? by saganos
         dataset = TranslatedQA(data_path)
+    elif dataset_name == "vicuna":
+        dataset = Vicuna(cache_dir=data_path, **kwargs)
     elif dataset_name == "oasst_export":
         train, eval = load_oasst_export(data_path=data_path, val_split=val_split, mode=mode, **kwargs)
     elif dataset_name == "hf_summary":
@@ -158,6 +164,14 @@ def get_one_dataset(
         train, eval = load_shp()
     elif dataset_name == "hellaswag":
         train, eval = load_hellaswag()
+    elif dataset_name == "dolly15k":
+        dataset = DatabricksDolly15k(cache_dir=data_path, mode=mode, **kwargs)
+    elif dataset_name == "alpaca_gpt4":
+        dataset = AlpacaGpt4(cache_dir=data_path, mode=mode, **kwargs)
+    elif dataset_name == "red_pajama":
+        dataset = RedPajama(cache_dir=data_path, mode=mode, **kwargs)
+    elif dataset_name == "gpteacher_roleplay":
+        dataset = GPTeacher_Roleplay(cache_dir=data_path, mode=mode, **kwargs)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
 

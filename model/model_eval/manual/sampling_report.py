@@ -3,6 +3,7 @@ import gzip
 import json
 import random
 import re
+from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -25,6 +26,7 @@ QA_SPECIAL_TOKENS_V2_5 = {
 class SamplingConfig(pydantic.BaseModel):
     name: Optional[str]
     generate_args: dict[str, Any] = {}
+    system_profile: Optional[OrderedDict[str, float | int | str]] = None
     pre_text: Optional[str]
     add_prefix_tokens: Optional[bool] = False
 
@@ -70,7 +72,7 @@ def load_jsonl(input_file_path: str | Path) -> list[dict | str]:
     with file_in:
         # read one message tree per line
         for line in file_in:
-            obj = json.loads(line)
+            obj = json.loads(line, object_pairs_hook=OrderedDict)
             items.append(obj)
 
     return items
@@ -100,7 +102,22 @@ def sample(
     if mode == "v2":
         input_text = f"{prefix}{QA_SPECIAL_TOKENS['Question']}{prompt}{QA_SPECIAL_TOKENS['Answer']}"
     elif mode == "v2_5":
-        input_text = f"{prefix}{QA_SPECIAL_TOKENS_V2_5['prompter']}{prompt}{tokenizer.eos_token}{QA_SPECIAL_TOKENS_V2_5['assistant']}"
+        if sampling_config.system_profile and len(sampling_config.system_profile) > 0:
+            system_fragments = [QA_SPECIAL_TOKENS_V2_5["system"]]
+            for k, v in sampling_config.system_profile.items():
+                if isinstance(v, float):
+                    system_fragments.append(f"{k}: {v:0.1f}")
+                elif isinstance(v, str):
+                    system_fragments.append(f"{k}: {v}")
+                else:
+                    system_fragments.append(f"{k}: {v}")
+            system_fragments.append(tokenizer.eos_token)
+            system_tag = "\n".join(system_fragments)
+        else:
+            system_tag = ""
+
+        input_text = f"{prefix}{QA_SPECIAL_TOKENS_V2_5['prompter']}{prompt}{tokenizer.eos_token}{system_tag}{QA_SPECIAL_TOKENS_V2_5['assistant']}"
+        print("input_text", input_text)
     else:
         assert sc.human_name and sc.bot_name, "'human_name' and 'bot_name' parameters must be specified in config "
         input_text = f"{prefix}\n{sc.human_name}: {prompt}\n\n{sc.bot_name}: "
@@ -143,6 +160,12 @@ def merge_configs(*configs: tuple[Optional[SamplingConfig]]) -> Optional[Samplin
             if c.generate_args:
                 for k, v in c.generate_args.items():
                     merged.generate_args[k] = v
+            # system profile
+            if c.system_profile:
+                if not merged.system_profile:
+                    merged.system_profile = {}
+                for k, v in c.system_profile.items():
+                    merged.system_profile[k] = v
 
     return merged
 
@@ -226,6 +249,7 @@ def parse_args():
     parser.add_argument("--num-samples", type=int, default=2, help="number of sampling runs per configuration")
     parser.add_argument("--config", type=str, default="config/default.json", help="configuration file path")
     parser.add_argument("--half", action="store_true", default=False, help="use float16")
+    parser.add_argument("--int8", action="store_true", default=False, help="use int8 quantization")
     parser.add_argument("--skip-special-tokens", action="store_true", default=False)
     parser.add_argument("--model-type", type=str, default="CausalLM", help="CausalLM, T5Conditional, LLaMA")
     parser.add_argument("--max-input-len", type=int, help="max token counts for input")
@@ -247,6 +271,10 @@ def main():
     print("Using pytorch version {}".format(torch.__version__))
 
     args = parse_args()
+    if args.int8 and not torch.cuda.is_available():
+        print("Warning: --int8 argument passed but cuda is not available. Ignoring --int8.")
+        args.int8 = False
+
     print("Args:", args)
 
     torch.set_num_threads(args.num_threads)
@@ -265,17 +293,23 @@ def main():
     model_name = args.model_name
     print(f"Loading model: {model_name}")
 
+    model_args = {}
+    if args.int8:
+        # these will break model.to(device) later in the script so a conditional check is needed
+        model_args["load_in_8bit"] = args.int8
+        model_args["device_map"] = "auto"
+
     if args.model_type.lower() == "causallm" or args.model_type.lower() == "llama":
         from transformers import AutoModelForCausalLM
 
         tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=args.auth_token)
-        model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=args.auth_token)
+        model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=args.auth_token, **model_args)
         skip_input_tokens = True
     elif args.model_type.lower() == "t5conditional":
         from transformers import T5ForConditionalGeneration
 
         tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=args.auth_token)
-        model = T5ForConditionalGeneration.from_pretrained(model_name, use_auth_token=args.auth_token)
+        model = T5ForConditionalGeneration.from_pretrained(model_name, use_auth_token=args.auth_token, **model_args)
         skip_input_tokens = False
     else:
         raise RuntimeError("Invalid model_type specified")
@@ -293,7 +327,10 @@ def main():
     model.eval()
     if args.half:
         model = model.half()
-    model = model.to(device)
+
+    # int8 models (load_in_8bit = True + device_map = auto): will cause this method to error
+    if not args.int8:
+        model = model.to(device)
 
     print(f"Loading prompts file: {args.prompts}")
     prompts = load_jsonl(input_file_path=args.prompts)
@@ -302,10 +339,13 @@ def main():
     if args.n:
         prompts = prompts[: args.n]
 
+    args_dict = vars(args)
+    if "auth_token" in args_dict:
+        del args_dict["auth_token"]
     report = SamplingReport(
         model_name=model_name,
         date=datetime.utcnow().isoformat(),
-        args=vars(args),
+        args=args_dict,
         prompts=sample_prompt_continuations(
             prompts=prompts,
             model=model,

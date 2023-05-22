@@ -1,6 +1,7 @@
 {
   "blurb": "Creemos que podemos crear una revolución.",
   "blurb1": "De la misma forma que Stable Diffusion ayudó al mundo a crear arte e imágenes de nuevas maneras, queremos mejorar el mundo proporcionando una IA conversacional asombrosa.",
+  "chat_with_our_assistant": "Chatea con nuestro asistente",
   "description": "IA conversacional para todos. Un proyecto de código abierto para crear un GPT LLM preparado para chatear administrado por LAION y colaboradores de todo el mundo.",
   "faq_items": {
     "q0": "¿Qué tan avanzado está el proyecto?",
@@ -18,6 +19,7 @@
   },
   "faq_title": "Preguntas frecuentes",
   "help_us_improve": "Ayúdanos a mejorar",
+  "hugging_face_link": "Echa un vistazo a nuestra organización en HuggingFace.",
   "join_us_description": "Todos los proyectos de código abierto comienzan con personas como tú. El código abierto es la creencia de que si colaboramos juntos, podemos regalar nuestro conocimiento y tecnología al mundo en beneficio de la humanidad. ¿Te apuntas? Encuéntranos aquí:",
   "join_us_title": "Únete a nosotros",
   "subtitle": "IA conversacional para todos.",

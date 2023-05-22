@@ -14,6 +14,8 @@ class CreateAssistantMessageRequest(pydantic.BaseModel):
     parent_id: str
     model_config_name: str
     sampling_parameters: inference.SamplingParameters = pydantic.Field(default_factory=inference.SamplingParameters)
+    plugins: list[inference.PluginEntry] = pydantic.Field(default_factory=list[inference.PluginEntry])
+    used_plugin: inference.PluginUsed | None = None
 
 
 class PendingResponseEvent(pydantic.BaseModel):
@@ -38,8 +40,15 @@ class MessageResponseEvent(pydantic.BaseModel):
     message: inference.MessageRead
 
 
+class SafePromptResponseEvent(pydantic.BaseModel):
+    event_type: Literal["safe_prompt"] = "safe_prompt"
+    safe_prompt: str
+    message: inference.MessageRead
+
+
 ResponseEvent = Annotated[
-    Union[TokenResponseEvent, ErrorResponseEvent, MessageResponseEvent], pydantic.Field(discriminator="event_type")
+    Union[TokenResponseEvent, ErrorResponseEvent, MessageResponseEvent, SafePromptResponseEvent],
+    pydantic.Field(discriminator="event_type"),
 ]
 
 
@@ -61,6 +70,8 @@ class ChatListRead(pydantic.BaseModel):
     created_at: datetime.datetime
     modified_at: datetime.datetime
     title: str | None
+    hidden: bool = False
+    allow_data_use: bool = True
 
 
 class ChatRead(ChatListRead):
@@ -69,6 +80,8 @@ class ChatRead(ChatListRead):
 
 class ListChatsResponse(pydantic.BaseModel):
     chats: list[ChatListRead]
+    next: str | None = None
+    prev: str | None = None
 
 
 class MessageCancelledException(Exception):
@@ -81,3 +94,9 @@ class MessageTimeoutException(Exception):
     def __init__(self, message: inference.MessageRead):
         super().__init__(f"Message {message.id} timed out")
         self.message = message
+
+
+class ChatUpdateRequest(pydantic.BaseModel):
+    title: pydantic.constr(max_length=100) | None = None
+    hidden: bool | None = None
+    allow_data_use: bool | None = None

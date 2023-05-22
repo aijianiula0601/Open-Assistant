@@ -4,7 +4,13 @@ from typing import Optional, Union
 
 import numpy as np
 import torch
-from model_training.custom_datasets.formatting import QA_SPECIAL_TOKENS, format_pairs, format_system_prefix
+from model_training.custom_datasets.formatting import (
+    QA_SPECIAL_TOKENS,
+    DatasetEntryLm,
+    DatasetEntrySft,
+    format_pairs,
+    format_system_prefix,
+)
 from torch.nn import functional as F
 from transformers.tokenization_utils_base import PaddingStrategy, PreTrainedTokenizerBase, TruncationStrategy
 
@@ -26,6 +32,9 @@ class DialogueDataCollator:
     label_masking: bool = True
     use_system_prefix: bool = False
     system_prefix: str = None
+    use_system_tag: bool = False
+    system_property_dropout: float = 0.5
+    system_add_length: bool = True
 
     def __post_init__(self):
         assert self.tokenizer.eos_token
@@ -41,16 +50,27 @@ class DialogueDataCollator:
 
     def process_one(self, messages, return_length=False):
         total_short_context_one = 0
-        messages = list(messages)
-
-        if random.random() < self.random_offset_probability:
+        if random.random() < self.random_offset_probability and not isinstance(messages, DatasetEntryLm):
             truncation = TruncationStrategy.DO_NOT_TRUNCATE
             max_length = None
         else:
             truncation = TruncationStrategy.LONGEST_FIRST
             max_length = self.max_length
 
-        messages = format_pairs(messages, self.tokenizer.eos_token)
+        pretrain_dataset = False
+        if isinstance(messages, DatasetEntrySft):
+            messages = messages.get_formatted(
+                eos_token=self.tokenizer.eos_token,
+                use_system_tag=self.use_system_tag,
+                system_property_dropout=self.system_property_dropout,
+                system_add_length=self.system_add_length,
+            )
+        elif isinstance(messages, DatasetEntryLm):
+            messages = messages.text
+            pretrain_dataset = True
+        else:
+            messages = list(messages)
+            messages = format_pairs(messages, self.tokenizer.eos_token)
 
         flatten_message = self.tokenizer(
             "".join(messages),
@@ -58,6 +78,10 @@ class DialogueDataCollator:
             truncation=truncation,
             padding=False,
         )
+
+        if pretrain_dataset:
+            label_mask = np.ones(len(flatten_message.input_ids), dtype=bool)
+            return flatten_message, label_mask, 0
 
         if return_length:
             return min(len(flatten_message.input_ids), self.max_length)

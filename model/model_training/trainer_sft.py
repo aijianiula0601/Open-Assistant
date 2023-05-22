@@ -12,9 +12,10 @@ import torch
 prj_model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(prj_model_dir)
 
+# from model_training.custom_datasets.formatting import DatasetEntry
 from model_training.custom_datasets.dialogue_collator import DialogueDataCollator
 from model_training.efficiency_utils import fuse_gelu
-from model_training.utils import (
+from model_training.utils.utils import (
     PerDatasetSampler,
     _strtobool,
     get_dataset,
@@ -51,14 +52,14 @@ def preprocess_logits_for_metrics(logits, labels):
 
 class SFTTrainer(Trainer):
     def __init__(
-            self,
-            model: Union[PreTrainedModel, nn.Module] = None,
-            args: TrainingArguments = None,
-            sampler: torch.utils.data.sampler.Sampler = None,
-            loss_function: str = "CrossEntropyLoss",
-            poly_eps: float = 1.0,
-            train_collate_fn: Callable = None,
-            **kwargs,
+        self,
+        model: Union[PreTrainedModel, nn.Module] = None,
+        args: TrainingArguments = None,
+        sampler: torch.utils.data.sampler.Sampler = None,
+        loss_function: str = "CrossEntropyLoss",
+        poly_eps: float = 1.0,
+        train_collate_fn: Callable = None,
+        **kwargs,
     ):
         super().__init__(model, args, **kwargs)
         self.train_collate_fn = train_collate_fn
@@ -99,11 +100,11 @@ class SFTTrainer(Trainer):
         return loss, logits, targets, labels_mask
 
     def prediction_step(
-            self,
-            model: nn.Module,
-            inputs: Dict[str, Union[torch.Tensor, Any]],
-            prediction_loss_only: bool,
-            ignore_keys: Optional[List[str]] = None,
+        self,
+        model: nn.Module,
+        inputs: Dict[str, Union[torch.Tensor, Any]],
+        prediction_loss_only: bool,
+        ignore_keys: Optional[List[str]] = None,
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         with torch.no_grad():
             loss, logits, labels, labels_mask = self._compute_loss(model, inputs)
@@ -190,15 +191,6 @@ def argument_parsing(notebook=False, notebook_args=None):
     parser.add_argument("--resume_from_checkpoint", action="store_true", help="Resume from last saved checkpoint")
     parser.add_argument("--rng_seed", type=int, help="rng seed")
     parser.add_argument("--show_dataset_stats", action="store_true", help="Show dataset stats", default=False)
-    parser.add_argument("--num_train_epochs", type=int)
-    parser.add_argument("--dtype", type=str)
-    parser.add_argument("--log_dir", type=str)
-    parser.add_argument("--gradient_accumulation_steps", type=int)
-    parser.add_argument("--per_device_train_batch_size", type=int)
-    parser.add_argument("--per_device_eval_batch_size", type=int)
-    parser.add_argument("--logging_steps", type=int)
-    parser.add_argument("--save_total_limit", type=int)
-    parser.add_argument("--save_steps", type=int)
     parser.set_defaults(deepspeed=False)
 
     if notebook:
@@ -208,12 +200,8 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls(f"{prj_model_dir}/model_training/configs")
+    configs = read_yamls("./configs")
     conf.update(configs["defaults"])
-    print("-" * 100)
-    print(conf)
-    print("-" * 100)
-
     try:
         for name in args.configs:
             if "," in name:
@@ -233,7 +221,7 @@ def argument_parsing(notebook=False, notebook_args=None):
         conf["rng_seed"] = args.rng_seed
     conf["show_dataset_stats"] = args.show_dataset_stats
 
-    # get the world size in deeepspeed
+    # get the world size in deepspeed
     if conf["deepspeed"]:
         conf["world_size"] = int(os.getenv("WORLD_SIZE", default="1"))
     else:
@@ -261,9 +249,17 @@ def tokenizer_sanity_check(tokenizer):
     print(f"bos_token='{tokenizer.bos_token}', bos_token_id={tokenizer.bos_token_id}")
     print(f"eos_token='{tokenizer.eos_token}', eos_token_id={tokenizer.eos_token_id}")
 
-    from model_training.custom_datasets.formatting import QA_SPECIAL_TOKENS, format_pairs
+    from model_training.custom_datasets.formatting import QA_SPECIAL_TOKENS, create_dataset_entry_qa
 
-    in_text = format_pairs(["Q1", "A1", "Q2", "A2"], tokenizer.eos_token)
+    ds_entry = create_dataset_entry_qa(
+        mode="sft", questions=["Q1", "Q2"], answers=["A1", "A2"], lang="en", context="ctx"
+    )
+    in_text = ds_entry.get_formatted(
+        tokenizer.eos_token,
+        use_system_tag=True,
+        system_property_dropout=0,
+        system_add_length=True,
+    )
     in_text = "".join(in_text)
 
     prompter_token_id = tokenizer.convert_tokens_to_ids(QA_SPECIAL_TOKENS["Question"])
@@ -347,30 +343,34 @@ def main():
         pad_to_multiple_of=16,
         use_system_prefix=training_conf.use_system_prefix,
         system_prefix=training_conf.system_prefix,
+        use_system_tag=training_conf.use_system_tag,
+        system_property_dropout=training_conf.system_property_dropout,
+        system_add_length=training_conf.system_add_length,
     )
 
-    if training_conf.val_max_length is not None:
-        val_max_len = training_conf.val_max_length
-    else:
-        val_max_len = training_conf.max_length
+    if training_conf.val_max_length is None:
+        training_conf.val_max_length = training_conf.max_length
 
     eval_collate_fn = DialogueDataCollator(
         tokenizer,
-        max_length=val_max_len,
+        max_length=training_conf.val_max_length,
         random_offset_probability=training_conf.random_offset_probability,
         label_masking=training_conf.label_masking,
         samples_mixing=False,
         use_system_prefix=training_conf.use_system_prefix,
         system_prefix=training_conf.system_prefix,
+        use_system_tag=training_conf.use_system_tag,
+        system_property_dropout=training_conf.system_property_dropout,
+        system_add_length=training_conf.system_add_length,
     )
 
     train, evals = get_dataset(training_conf)
 
     show_dataset_stats = (training_conf.verbose or training_conf.show_dataset_stats) and (
-            not training_conf.deepspeed or training_conf.local_rank == 0
+        not training_conf.deepspeed or training_conf.local_rank == 0
     )
     if show_dataset_stats:
-        print("Dataset stats before sampling:")
+        print("Training dataset sizes (before sampling):")
         total = len(train)
         for d in train.datasets:
             if isinstance(d, Subset):
@@ -381,8 +381,21 @@ def main():
                 name = type(d).__name__
                 if hasattr(d, "name"):
                     name += f" ({d.name})"
-            print(f"{name}: {len(d)} ({len(d) / total:%})")
-        print(f"Total train: {total}")
+            print(f"{name}: {len(d)} ({len(d) / total:.2%})")
+
+            # ensure that all entries can be formatted
+            # for x in d:
+            #     if isinstance(x, DatasetEntry):
+            #         x.get_formatted("sft", "<eos>")
+
+        print(f"\nTotal train: {total}")
+        print("-" * 80)
+        print("Evaluation set sizes:")
+        total_eval = sum(len(x) for x in evals.values())
+        for k, d in evals.items():
+            print(f"{k}: {len(d)} ({len(d) / total_eval:.2%})")
+        print(f"\nTotal eval: {total_eval}")
+        print("-" * 80)
 
     if training_conf.use_custom_sampler:
         samples_length = None
@@ -410,8 +423,7 @@ def main():
     model = get_model(training_conf, tokenizer)
 
     if training_conf.quantization:
-        import \
-            bitsandbytes  # This is noisy, so delay importing until after argument parsing so it doesn't make --help noisy
+        import bitsandbytes  # This is noisy, so delay importing until after argument parsing so it doesn't make --help noisy
 
         for module in model.modules():
             if isinstance(module, torch.nn.Embedding):
@@ -437,7 +449,7 @@ def main():
             config=training_conf,
         )
         wandb.config["_max_length"] = training_conf.max_length
-        wandb.config["val_max_length"] = val_max_len
+        wandb.config["_val_max_length"] = training_conf.val_max_length
 
     trainer = SFTTrainer(
         model=model,

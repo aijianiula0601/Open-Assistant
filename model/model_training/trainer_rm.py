@@ -1,19 +1,14 @@
 import argparse
 import logging
 import os
-import sys
 from typing import Callable, Literal, Optional, Union
 
 import datasets
 import torch
-
-prj_model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(prj_model_dir)
-
 from model_training.custom_datasets.ranking_collator import RankingDataCollator
 from model_training.efficiency_utils import fuse_gelu
 from model_training.metrics import RewardMetrics
-from model_training.utils import (
+from model_training.utils.utils import (
     PerDatasetSampler,
     _strtobool,
     get_dataset,
@@ -35,14 +30,14 @@ from transformers.utils import is_datasets_available
 
 class RMTrainer(Trainer):
     def __init__(
-            self,
-            model: Union[PreTrainedModel, nn.Module] = None,
-            args: TrainingArguments = None,
-            sampler: torch.utils.data.sampler.Sampler = None,
-            loss_function: Literal["RMLoss"] = "RMLoss",
-            score_l2_reg: float = 0.001,
-            train_collate_fn: Callable = None,
-            **kwargs,
+        self,
+        model: Union[PreTrainedModel, nn.Module] = None,
+        args: TrainingArguments = None,
+        sampler: torch.utils.data.sampler.Sampler = None,
+        loss_function: Literal["RMLoss"] = "RMLoss",
+        score_l2_reg: float = 0.001,
+        train_collate_fn: Callable = None,
+        **kwargs,
     ):
         super().__init__(model, args, **kwargs)
         self.train_collate_fn = train_collate_fn
@@ -62,11 +57,11 @@ class RMTrainer(Trainer):
         return (loss, logits) if return_logits else loss
 
     def prediction_step(
-            self,
-            model: nn.Module,
-            inputs: tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], list[int]],
-            prediction_loss_only: bool,
-            ignore_keys: Optional[list[str]] = None,
+        self,
+        model: nn.Module,
+        inputs: tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], list[int]],
+        prediction_loss_only: bool,
+        ignore_keys: Optional[list[str]] = None,
     ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         batch, cu_lens = inputs
         with torch.no_grad():
@@ -152,7 +147,7 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls(f"{prj_model_dir}/model_training/configs")
+    configs = read_yamls("./configs")
     for name in args.configs:
         if "," in name:
             for n in name.split(","):
@@ -168,7 +163,7 @@ def argument_parsing(notebook=False, notebook_args=None):
         conf["rng_seed"] = args.rng_seed
     conf["show_dataset_stats"] = args.show_dataset_stats
 
-    # get the world size in deeepspeed
+    # get the world size in deepspeed
     if conf["deepspeed"]:
         conf["world_size"] = int(os.getenv("WORLD_SIZE", default="1"))
     else:
@@ -200,15 +195,23 @@ def main():
         tokenizer,
         max_length=training_conf.max_length,
         pad_to_multiple_of=16,
+        max_replies=training_conf.max_replies,
+        use_system_tag=training_conf.use_system_tag,
+        system_property_dropout=training_conf.system_property_dropout,
+        system_add_length=training_conf.system_add_length,
     )
     eval_collate_fn = RankingDataCollator(
         tokenizer,
         max_length=training_conf.max_length,
         pad_to_multiple_of=16,
+        max_replies=training_conf.max_replies,
+        use_system_tag=training_conf.use_system_tag,
+        system_property_dropout=training_conf.system_property_dropout,
+        system_add_length=training_conf.system_add_length,
     )
 
     show_dataset_stats = (training_conf.verbose or training_conf.show_dataset_stats) and (
-            not training_conf.deepspeed or training_conf.local_rank == 0
+        not training_conf.deepspeed or training_conf.local_rank == 0
     )
     if show_dataset_stats:
         print("Dataset stats before sampling:")

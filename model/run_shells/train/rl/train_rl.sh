@@ -6,7 +6,6 @@ curdir=$(pwd)
 echo "curdir:$curdir"
 cd "$curdir" || exit
 
-
 #--------------------------------------------------------------------
 # 切换环境
 # conda activate open-assistant
@@ -15,50 +14,19 @@ cd "$curdir" || exit
 
 cd ../../../../
 
-
+echo "pwd:$(pwd)"
 
 save_base_dir="/mnt/cephfs/hjh/train_record/nlp/open-assistant"
-dataset_dir="${save_base_dir}/dataset"
-train_output_dir="${save_base_dir}/rl_outputs"
-log_dir="${train_output_dir}/run_logs"
-deepspeed_config="$(pwd)/model/run_shells/deepspeed_config.json"
-config_file="$(pwd)/model/model_training/configs/config_rl.yaml"
-rank_model="${save_base_dir}/pretrained_models/galactica-125m"
-#sft_model="${save_base_dir}/pretrained_models/pythia-70m-deduped/pytorch_model.bin"
-sft_model="${save_base_dir}/stft_outputs/checkpoint-500"
-wandb_entity="rl"
-random_port=12343
-
-
-rm -rf ${train_output_dir}
-
-#python model/model_training/trainer_rl.py -h
-
-#----------------
-# 单卡
-#----------------
-python model/model_training/trainer_rl.py \
---configs defaults_rlhf \
---output_dir ${train_output_dir} \
---cache_dir ${dataset_dir} \
---rank_model ${rank_model} \
---sft_model ${sft_model}
 
 #----------------
 # 多卡
 #----------------
-#export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
-#torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/trainer_rm.py \
-#--configs defaults llama-7b webgpt_dataset_only \
-#--cache_dir ${dataset_dir} \
-#--output_dir ${train_output_dir} \
-#--deepspeed \
-#--deepspeed_config "$(pwd)/model/run_shells/deepspeed_config.json" \
-#--per_device_train_batch_size 16 \
-#--per_device_eval_batch_size 8 \
-#--num_train_epochs 3 \
-#--logging_steps 2 \
-#--save_total_limit 3 \
-#--use_flash_attention false \
-#--log_dir ${log_dir} \
-#--show_dataset_stats
+localhost="202.168.100.178"
+export TRITON_HOST_RM=${localhost}:8002/andreaskoepf-oasst-rm-2-pythia-1.4b-10000
+export TRITON_HOST_REF=${localhost}:8005/OpenAssistant/stablelm-7b-sft-v7-epoch-3
+
+CUDA_VISIBLE_DEVICES=2,3,4,5,6,7 \
+  OMP_NUM_THREADS=1 accelerate launch --main_process_port 29501 \
+  --config_file model/model_training/configs/accelerate_config.yaml --num_processes 6 \
+  model/model_training/trainer_rl.py \
+  --configs defaults defaults_rlhf llama_rlhf oasst_export_latin_cyrillic_rlhf

@@ -1,6 +1,7 @@
 import argparse
 import math
 import os
+import sys
 import random
 from argparse import Namespace
 
@@ -9,6 +10,10 @@ import torch
 import transformers
 import tritonclient.grpc as client_util
 import trlx
+
+prj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(prj_dir)
+
 from model_training.custom_datasets.formatting import QA_SPECIAL_TOKENS, format_pairs
 from model_training.models import get_specific_model
 from model_training.utils.utils import _strtobool, get_dataset, init_rng, read_yamls

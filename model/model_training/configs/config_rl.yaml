@@ -6,7 +6,7 @@ defaults_rlhf:
   num_rollouts: 16
   total_steps: 10000
   datasets_extra: []
-  cache_dir: /home/ubuntu/data_cache
+  cache_dir: /tmp/data_cache
   output_dir: model_rl
   eval_size: 500
   num_eval_prompts: 64
@@ -55,12 +55,12 @@ pythia_rlhf:
     batch_size: 1
 
 llama_rlhf:
-  triton_host_rm: localhost:8002/OpenAssistant-oasst-rm-2-pythia-6.9b-epoch-1
-  triton_host_sft: localhost:8005/OpenAssistant-oasst-sft-7e2-llama-30b
+  triton_host_rm: 202.168.100.178:8002/andreaskoepf-oasst-rm-2-pythia-1.4b-10000
+  triton_host_sft: 202.168.100.178:8005/OpenAssistant/stablelm-7b-sft-v7-epoch-3
   rank_config:
     is_reward_model: true
     model_name: OpenAssistant/oasst-rm-2-pythia-6.9b-epoch-1
-    cache_dir: /mnt/data/Open-Assistant-RLHF/model/model_training/.cache
+    cache_dir: /mnt/cephfs/hjh/train_record/nlp/open-assistant/cache
     pooling: last
     residual_dropout: 0.0
     use_flash_attention: false
@@ -69,8 +69,8 @@ llama_rlhf:
 
   sft_config:
     is_reward_model: false
-    model_name: OpenAssistant/oasst-sft-7e2-llama-30b
-    cache_dir: /mnt/data/Open-Assistant-RLHF/model/model_training/.cache
+    model_name: OpenAssistant/stablelm-7b-sft-v7-epoch-3
+    cache_dir: /mnt/cephfs/hjh/train_record/nlp/open-assistant/cache
     quantization: false
     seq2seqmodel: false
     freeze_layer: 52

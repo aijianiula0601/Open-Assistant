@@ -1,10 +1,15 @@
 import argparse
 import logging
 import os
+import sys
 from typing import Callable, Literal, Optional, Union
 
 import datasets
 import torch
+
+prj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(prj_dir)
+
 from model_training.custom_datasets.ranking_collator import RankingDataCollator
 from model_training.efficiency_utils import fuse_gelu
 from model_training.metrics import RewardMetrics

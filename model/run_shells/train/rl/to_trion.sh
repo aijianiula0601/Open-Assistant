@@ -1,8 +1,10 @@
 
 
-#-----------------------------------------------------------------------
-#把rm,sft转换为triton可用图
-#-----------------------------------------------------------------------
+#************************************************************
+#***
+# 把rm,sft转换为triton可用图
+#***
+#************************************************************
 
 
 
@@ -21,3 +23,18 @@ python to_triton.py --configs llama_rlhf --triton_mode rm
 #--------------------------------------------
 CUDA_VISIBLE_DEVICES=1 \
 python to_triton.py --configs llama_rlhf --triton_mode sft
+
+
+#--------------------------------------------
+# 采用trition启动推理服务
+#--------------------------------------------
+
+model_base_dir="/workspace/hjh/pycharm_projects/nlp/Open-Assistant/on_master/00263f20217780b54b754d753cbb6821c0b6490a/model/model_training/triton_models"
+rm_model_dir="${model_base_dir}/model_store_rm"
+CUDA_VISIBLE_DEVICES=0 \
+tritonserver --model-repository=${rm_model_dir} --http-port 8001 --grpc-port 8002 --metrics-port 8003
+
+
+stf_model_dir="${model_base_dir}/model_store_sft"
+CUDA_VISIBLE_DEVICES=1 \
+tritonserver --model-repository=${stf_model_dir} --http-port 8004 --grpc-port 8005 --metrics-port 8006

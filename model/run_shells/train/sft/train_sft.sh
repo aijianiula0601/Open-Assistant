@@ -43,7 +43,8 @@ export PYTHONPATH=$PYTHONPATH:../../oasst-shared
 # 多卡
 #----------------
 #export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
-torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/trainer_sft.py \
+CUDA_VISIBLE_DEVICES=2,3,4,5,6,7 \
+torchrun --nproc_per_node=6 --master_port=${random_port} model/model_training/trainer_sft.py \
   --configs defaults llama-7b webgpt_dataset_only \
   --cache_dir ${dataset_dir} \
   --output_dir ${train_output_dir} \

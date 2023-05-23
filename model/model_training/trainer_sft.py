@@ -200,7 +200,7 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls("./configs")
+    configs = read_yamls("model/model_training/configs")
     conf.update(configs["defaults"])
     try:
         for name in args.configs:

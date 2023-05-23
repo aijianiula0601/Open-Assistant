@@ -55,7 +55,7 @@ defaults:
   #  - iapp_wiki_qa_squad
   #  - zhihu-kol
   datasets_extra: [] # For config options to add additional datasets, since yaml doesn't let us extend arrays
-  cache_dir: .cache
+  cache_dir: /mnt/cephfs/hjh/train_record/nlp/open-assistant/dataset
   loss_fn: CrossEntropyLoss
   eval_size:
   log_dir: "base"
@@ -226,9 +226,9 @@ oasst_export_latin_cyrillic:
 
 llama-7b:
   dtype: fp16
-  log_dir: "llama_log_7b"
+  log_dir: "/mnt/cephfs/hjh/train_record/nlp/open-assistant/stft_outputs/llama_log_7b"
   learning_rate: 1e-5
-  model_name: /home/ubuntu/llama_hf/7B
+  model_name: /mnt/cephfs/hjh/train_record/nlp/stanford_alpaca/pretrain_models/llama/for_open-assistant_llama_7b
   output_dir: llama_model_7b
   weight_decay: 0.0
   max_length: 2048

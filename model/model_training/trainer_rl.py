@@ -40,7 +40,7 @@ def argument_parsing(notebook=False, notebook_args=None, **kwargs):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls("./configs")
+    configs = read_yamls("model/model_training/configs")
     for name in args.configs:
         if "," in name:
             for n in name.split(","):
@@ -131,7 +131,7 @@ def main():
     # Load pretrained SFT model
 
     # override model_name to be the same as sft_model
-    trlx_config = TRLConfig.load_yaml("configs/ppo_config.yaml")
+    trlx_config = TRLConfig.load_yaml("model/model_training/configs/ppo_config.yaml")
     trlx_config.sft_config = sft_config
 
     train, eval_dict = get_dataset(training_conf, mode="rl")

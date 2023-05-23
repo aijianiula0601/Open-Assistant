@@ -45,8 +45,8 @@ rm -rf ${train_output_dir}
 # 多卡
 #----------------
 export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
-#CUDA_VISIBLE_DEVICES=4,5,6,7 \
-torchrun --nproc_per_node=8 --master_port=${random_port} model/reward/instructor/trainer.py ${config_file} \
+CUDA_VISIBLE_DEVICES=4,5,6,7 \
+torchrun --nproc_per_node=4 --master_port=${random_port} model/reward/instructor/trainer.py ${config_file} \
 --wandb-entity ${wandb_entity} \
 --output_dir ${train_output_dir} \
 --deepspeed \

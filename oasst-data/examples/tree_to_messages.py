@@ -1,4 +1,9 @@
+import os
+import sys
 import argparse
+
+prj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(prj_dir)
 
 from oasst_data import ExportMessageNode, read_message_trees, visit_messages_depth_first, write_messages
 

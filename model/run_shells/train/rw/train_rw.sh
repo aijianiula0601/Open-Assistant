@@ -43,18 +43,19 @@ python model/model_training/trainer_rm.py \
 #----------------
 # 多卡
 #----------------
-#export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
-#torchrun --nproc_per_node=8 --master_port=${random_port} model/model_training/trainer_rm.py \
-#--configs defaults llama-7b webgpt_dataset_only \
-#--cache_dir ${dataset_dir} \
-#--output_dir ${train_output_dir} \
-#--deepspeed \
-#--deepspeed_config "$(pwd)/model/run_shells/deepspeed_config.json" \
-#--per_device_train_batch_size 16 \
-#--per_device_eval_batch_size 8 \
-#--num_train_epochs 3 \
-#--logging_steps 2 \
-#--save_total_limit 3 \
-#--use_flash_attention false \
-#--log_dir ${log_dir} \
-#--show_dataset_stats
+export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
+CUDA_VISIBLE_DEVICES=4,5,6,7 \
+torchrun --nproc_per_node=4 --master_port=${random_port} model/model_training/trainer_rm.py \
+--configs defaults llama-7b webgpt_dataset_only \
+--cache_dir ${dataset_dir} \
+--output_dir ${train_output_dir} \
+--deepspeed \
+--deepspeed_config "$(pwd)/model/run_shells/deepspeed_config.json" \
+--per_device_train_batch_size 16 \
+--per_device_eval_batch_size 8 \
+--num_train_epochs 3 \
+--logging_steps 2 \
+--save_total_limit 3 \
+--use_flash_attention false \
+--log_dir ${log_dir} \
+--show_dataset_stats

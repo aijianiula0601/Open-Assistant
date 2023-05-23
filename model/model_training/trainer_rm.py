@@ -152,7 +152,7 @@ def argument_parsing(notebook=False, notebook_args=None):
 
     # Config from YAML
     conf = {}
-    configs = read_yamls("model/model_training/configs")
+    configs = read_yamls(f"{prj_dir}/model_training/configs")
     for name in args.configs:
         if "," in name:
             for n in name.split(","):

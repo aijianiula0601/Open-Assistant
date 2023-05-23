@@ -11,6 +11,7 @@ cd "$curdir" || exit
 # 切换环境
 # conda activate open-assistant
 # 环境安装：按照model/model_training的README.md来安装
+# 需按照 https://github.com/HazyResearch/flash-attention 安装flash-attn
 #--------------------------------------------------------------------
 
 cd ../../../../
@@ -32,13 +33,13 @@ rm -rf ${train_output_dir}
 #----------------
 # 单卡
 #----------------
-python model/model_training/trainer_rm.py \
---configs defaults_rm oasst-rm-1-pythia-6B \
---wandb-entity ${wandb_entity} \
---cache_dir ${dataset_dir} \
---output_dir ${train_output_dir} \
---deepspeed \
---deepspeed_config ${deepspeed_config}
+#python model/model_training/trainer_rm.py \
+#--configs defaults_rm oasst-rm-1-pythia-6.9b \
+#--wandb-entity ${wandb_entity} \
+#--cache_dir ${dataset_dir} \
+#--output_dir ${train_output_dir} \
+#--deepspeed \
+#--deepspeed_config ${deepspeed_config}
 
 #----------------
 # 多卡
@@ -46,7 +47,7 @@ python model/model_training/trainer_rm.py \
 export PYTHONWARNINGS='ignore:semaphore_tracker:UserWarning'
 CUDA_VISIBLE_DEVICES=4,5,6,7 \
 torchrun --nproc_per_node=4 --master_port=${random_port} model/model_training/trainer_rm.py \
---configs defaults llama-7b webgpt_dataset_only \
+--configs defaults_rm oasst-rm-1-pythia-6.9b \
 --cache_dir ${dataset_dir} \
 --output_dir ${train_output_dir} \
 --deepspeed \

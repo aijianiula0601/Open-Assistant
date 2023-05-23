@@ -23,7 +23,7 @@ defaults_rm:
   dtype: fp16
   eval_accumulation_steps:
   freeze_layer:
-  cache_dir: .cache
+  cache_dir: /mnt/cephfs/hjh/train_record/nlp/open-assistant/dataset
   loss_fn: RMLoss
   score_l2_reg: 0.001
   eval_size:

@@ -48,23 +48,23 @@ oasst-rm-1-pythia-6.9b:
   is_reward_model: true
   pooling: last
   datasets:
-    - augment_oasst:
-        #input_file_path: augmented_latin_cyrillic_oasst_2023-03-27.jsonl
-        input_file_path: augmented_latin_cyrillic_oasst_2023-03-27_v2.jsonl
-    - anthropic_rlhf:
-        fraction: 0.1
-        max_val_set: 1000
-    - shp:
-        max_val_set: 1000
-    - hellaswag:
-        fraction: 0.5
-        max_val_set: 1000
+#    - augment_oasst:
+#        #input_file_path: augmented_latin_cyrillic_oasst_2023-03-27.jsonl
+#        input_file_path: augmented_latin_cyrillic_oasst_2023-03-27_v2.jsonl
+#    - anthropic_rlhf:
+#        fraction: 0.1
+#        max_val_set: 1000
+#    - shp:
+#        max_val_set: 1000
+#    - hellaswag:
+#        fraction: 0.5
+#        max_val_set: 1000
     - webgpt:
         val_split: 0.05
         max_val_set: 1000
-    - hf_summary_pairs:
-        fraction: 0.1
-        max_val_set: 250
+#    - hf_summary_pairs:
+#        fraction: 0.1
+#        max_val_set: 250
   sort_by_length: false
   use_custom_sampler: true
   model_name: andreaskoepf/pythia-6.9b-gpt4all-pretrain

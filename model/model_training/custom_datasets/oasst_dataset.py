@@ -20,13 +20,13 @@ class ListDataset(Dataset):
 
 
 def load_oasst_export(
-    input_file_path: str | Path,
-    val_split: float = 0.2,
-    lang: str = "en",
-    top_k: Optional[int] = None,
-    manual_seed: int = 287631038922,
-    data_path: str | Path = None,
-    mode: Literal["sft", "rm", "rl"] = "sft",
+        input_file_path: str | Path,
+        val_split: float = 0.2,
+        lang: str = "en",
+        top_k: Optional[int] = None,
+        manual_seed: int = 287631038922,
+        data_path: str | Path = None,
+        mode: Literal["sft", "rm", "rl"] = "sft",
 ) -> tuple[ListDataset, ListDataset]:
     if mode not in ("sft", "rm", "rl"):
         raise ValueError(f"Unknown dataset mode: {mode}")
@@ -44,7 +44,6 @@ def load_oasst_export(
         input_file_path = data_path / input_file_path
 
     threads_per_tree = []
-    print("----------input_file_path:",input_file_path)
     for tree in read_message_trees(input_file_path):
         if tree.tree_state != "ready_for_export" or not tree.prompt.review_result or tree.prompt.lang not in lang_codes:
             continue
@@ -82,18 +81,18 @@ def load_oasst_export(
                 # the FIRST prompter reply is added .. e.g. the parent does not appear multiple times and we can use
                 # pop() to remove superfluous prompter leaf node later.
                 return (
-                    len(thread) > 1
-                    and not thread[-1].replies
-                    and (thread[-1].role == "assistant" or thread[-2].replies[0] == thread[-1])
-                    and thread_filter(thread)
+                        len(thread) > 1
+                        and not thread[-1].replies
+                        and (thread[-1].role == "assistant" or thread[-2].replies[0] == thread[-1])
+                        and thread_filter(thread)
                 )
             elif mode == "rm":
                 # for reward models we use thread-fragments ending on prompter messages as prefix and
                 # their (ranked) replies as possible continuations.
                 return (
-                    thread[-1].role == "prompter"
-                    and len([r for r in thread[-1].replies if r.rank is not None]) > 1
-                    and thread_filter(thread)
+                        thread[-1].role == "prompter"
+                        and len([r for r in thread[-1].replies if r.rank is not None]) > 1
+                        and thread_filter(thread)
                 )
             elif mode == "rl":
                 # during rl we are interested in all possible prefixes ending in prompter messages

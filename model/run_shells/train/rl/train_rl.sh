@@ -16,7 +16,7 @@ cd ../../../../
 
 echo "pwd:$(pwd)"
 
-save_base_dir="/mnt/cephfs/hjh/train_record/nlp/open-assistant"
+#save_base_dir="/mnt/cephfs/hjh/train_record/nlp/open-assistant"
 
 #----------------
 # 多卡
@@ -25,7 +25,7 @@ localhost="202.168.100.178"
 export TRITON_HOST_RM=${localhost}:8002/andreaskoepf-oasst-rm-2-pythia-1.4b-10000
 export TRITON_HOST_REF=${localhost}:8005/OpenAssistant/stablelm-7b-sft-v7-epoch-3
 
-CUDA_VISIBLE_DEVICES=2,3,4,5,6,7 \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 \
   OMP_NUM_THREADS=1 accelerate launch --main_process_port 29501 \
   --config_file model/model_training/configs/accelerate_config.yaml --num_processes 6 \
   model/model_training/trainer_rl.py \
